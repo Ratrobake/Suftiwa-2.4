@@ -1,0 +1,212 @@
+# ==========================================
+# SUFTIWA 1.0
+# Red neuronal conversacional simple
+# Español - Offline
+# ==========================================
+
+import math
+import random
+
+
+# -------------------------------
+# DATOS DE ENTRENAMIENTO
+# -------------------------------
+
+datos = [
+    ("hola", "hola"),
+    ("buenas", "hola"),
+    ("como estas", "estoy bien"),
+    ("como te llamas", "me llamo suftiwa"),
+    ("quien eres", "soy suftiwa 1.0"),
+    ("que eres", "soy una inteligencia artificial"),
+    ("hablas español", "si, hablo español"),
+    ("que puedes hacer", "puedo conversar contigo"),
+    ("gracias", "de nada"),
+    ("adios", "hasta luego"),
+]
+
+
+# -------------------------------
+# LIMPIAR TEXTO
+# -------------------------------
+
+def limpiar(texto):
+    texto = texto.lower()
+
+    cambios = {
+        "á": "a",
+        "é": "e",
+        "í": "i",
+        "ó": "o",
+        "ú": "u",
+        "ñ": "n"
+    }
+
+    for a, b in cambios.items():
+        texto = texto.replace(a, b)
+
+    return texto.strip()
+
+
+# -------------------------------
+# VOCABULARIO
+# -------------------------------
+
+palabras = set()
+
+for pregunta, respuesta in datos:
+    palabras.update(limpiar(pregunta).split())
+
+palabras = sorted(palabras)
+
+indice = {
+    palabra: i
+    for i, palabra in enumerate(palabras)
+}
+
+
+# -------------------------------
+# RED NEURONAL SIMPLE
+# -------------------------------
+
+entrada = len(palabras)
+oculta = 16
+salida = len(datos)
+
+
+random.seed(10)
+
+W1 = [
+    [random.uniform(-1, 1) for _ in range(oculta)]
+    for _ in range(entrada)
+]
+
+W2 = [
+    [random.uniform(-1, 1) for _ in range(salida)]
+    for _ in range(oculta)
+]
+
+
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
+
+
+def predecir(texto):
+
+    texto = limpiar(texto)
+    palabras_usuario = texto.split()
+
+    x = [0] * entrada
+
+    for palabra in palabras_usuario:
+
+        if palabra in indice:
+            x[indice[palabra]] = 1
+
+    # Primera capa
+    h = []
+
+    for j in range(oculta):
+
+        suma = 0
+
+        for i in range(entrada):
+            suma += x[i] * W1[i][j]
+
+        h.append(sigmoid(suma))
+
+    # Segunda capa
+    resultados = []
+
+    for k in range(salida):
+
+        suma = 0
+
+        for j in range(oculta):
+            suma += h[j] * W2[j][k]
+
+        resultados.append(suma)
+
+    return resultados
+
+
+# -------------------------------
+# ENTRENAMIENTO
+# -------------------------------
+
+def entrenar():
+
+    print("\nEntrenando Suftiwa 1.0...")
+
+    for epoca in range(1000):
+
+        for numero, (pregunta, respuesta) in enumerate(datos):
+
+            resultados = predecir(pregunta)
+
+            for k in range(salida):
+
+                objetivo = 1 if k == numero else 0
+
+                error = objetivo - sigmoid(resultados[k])
+
+                for j in range(oculta):
+                    W2[j][k] += error * 0.05
+
+    print("Entrenamiento terminado.")
+
+
+# -------------------------------
+# RESPUESTA
+# -------------------------------
+
+def responder(texto):
+
+    resultados = predecir(texto)
+
+    mejor = max(
+        range(len(resultados)),
+        key=lambda i: resultados[i]
+    )
+
+    confianza = sigmoid(resultados[mejor])
+
+    if confianza < 0.55:
+
+        respuestas = [
+            "no entiendo eso todavía",
+            "todavía estoy aprendiendo",
+            "no conozco esa frase",
+            "puedes decirlo de otra manera"
+        ]
+
+        return random.choice(respuestas)
+
+    return datos[mejor][1]
+
+
+# -------------------------------
+# INICIAR
+# -------------------------------
+
+print("================================")
+print("       SUFTIWA 1.0")
+print("================================")
+print("Entrenamiento simple")
+print("Escribe 'salir' para cerrar.")
+print()
+
+entrenar()
+
+print("\nSuftiwa está lista.\n")
+
+
+while True:
+
+    usuario = input("Tú: ")
+
+    if limpiar(usuario) == "salir":
+        print("Suftiwa: hasta luego.")
+        break
+
+    print("Suftiwa:", responder(usuario))
